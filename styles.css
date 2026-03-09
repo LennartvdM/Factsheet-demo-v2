@@ -31,7 +31,6 @@
 
 html {
   font-size: 16px;
-  scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -283,6 +282,22 @@ body {
   margin: 0.5rem 0;
 }
 
+/* Deep swipe hint */
+.carousel-deep-hint {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #bbb;
+  margin-top: 0.5rem;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.4s, transform 0.4s;
+}
+
+.carousel-deep-hint.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 /* Carousel dots */
 .carousel-dots {
   display: flex;
@@ -477,6 +492,16 @@ body {
   transform: translateX(0);
 }
 
+.detail-back-zone {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 20px;
+  height: 100%;
+  z-index: 998;
+  cursor: w-resize;
+}
+
 .detail-back {
   background: none;
   border: none;
@@ -519,6 +544,16 @@ body {
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+.td-negative { color: var(--color-negative); }
+.td-positive { color: var(--color-positive); }
+
+.detail-note {
+  margin-top: 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
 }
 
 /* ===== MOVEMENT 2: RADIAL CHART ===== */
@@ -652,7 +687,7 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* ===== MOVEMENT 3: PIPELINE ===== */
+/* ===== MOVEMENT 3: PIPELINE (horizontal scroll-hijack) ===== */
 .movement-3 {
   max-width: 100%;
   padding-left: 0;
@@ -677,31 +712,61 @@ body {
   color: var(--color-text-muted);
 }
 
-.pipeline-container {
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  padding: 2rem 1.5rem;
+/* Scroll-hijack container: extra height creates scroll room */
+.pipeline-scroll-section {
+  height: 300vh;
+  position: relative;
 }
 
-.pipeline-container::-webkit-scrollbar {
-  display: none;
+.pipeline-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.pipeline-viewport {
+  width: 100%;
+  overflow: hidden;
+  padding: 0 1.5rem;
 }
 
 .pipeline-track {
   display: flex;
+  align-items: center;
   gap: 0;
-  min-width: min-content;
+  will-change: transform;
+  transition: transform 0.1s linear;
 }
 
 .pipeline-stage {
   flex: 0 0 auto;
   width: 200px;
-  scroll-snap-align: center;
   text-align: center;
-  padding: 2rem 1.5rem;
-  position: relative;
+  padding: 2rem 1rem;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.5s var(--ease-out), transform 0.5s var(--ease-out);
+}
+
+.pipeline-stage.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.pipeline-connector {
+  flex: 0 0 auto;
+  width: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.connector-arrow {
+  width: 60px;
+  height: 20px;
 }
 
 .stage-value {
@@ -712,7 +777,6 @@ body {
   line-height: 1;
   margin-bottom: 0.5rem;
   color: var(--color-text);
-  transition: color 0.4s;
 }
 
 .pipeline-stage--uptick .stage-value {
@@ -733,20 +797,7 @@ body {
   color: #aaa;
 }
 
-.stage-arrow {
-  position: absolute;
-  right: -8px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1.2rem;
-  color: #ddd;
-}
-
-.pipeline-stage:last-child .stage-arrow {
-  display: none;
-}
-
-.movement-3 .carousel-container {
+.movement-3-carousel {
   max-width: 720px;
   margin-left: auto;
   margin-right: auto;
@@ -838,10 +889,6 @@ body {
 
 .dual-bar-fill--gender { background: var(--color-gender-bar); }
 .dual-bar-fill--cultural { background: var(--color-cultural-bar); }
-
-.dual-funnel.visible .dual-bar-fill {
-  width: 100%;
-}
 
 .dual-pct {
   font-family: var(--font-display);

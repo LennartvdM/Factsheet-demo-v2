@@ -33,7 +33,7 @@
   <!-- The Funnel -->
   <div class="funnel-section">
     <div class="funnel-level reveal" id="funnel-org">
-      <div class="funnel-bar" data-width="47.5">
+      <div class="funnel-bar" data-width="95">
         <div class="funnel-bar-fill"></div>
       </div>
       <div class="funnel-data">
@@ -46,7 +46,7 @@
     </div>
 
     <div class="funnel-level reveal" id="funnel-subtop">
-      <div class="funnel-bar" data-width="42.8">
+      <div class="funnel-bar" data-width="85.6">
         <div class="funnel-bar-fill"></div>
       </div>
       <div class="funnel-data">
@@ -60,7 +60,7 @@
     </div>
 
     <div class="funnel-level reveal" id="funnel-top">
-      <div class="funnel-bar" data-width="35.5">
+      <div class="funnel-bar" data-width="71">
         <div class="funnel-bar-fill"></div>
       </div>
       <div class="funnel-data">
@@ -75,7 +75,7 @@
   </div>
 
   <!-- Boardroom Carousel -->
-  <div class="carousel-container reveal" id="boardroom-carousel">
+  <div class="carousel-container reveal" id="boardroom-carousel" data-detail="boardroom">
     <p class="carousel-intro">De bestuurskamer</p>
     <div class="carousel-track">
       <div class="carousel-card card-rvb" data-board="rvb">
@@ -111,6 +111,7 @@
       <span class="dot"></span>
       <span class="dot"></span>
     </div>
+    <div class="carousel-deep-hint">Swipe voorbij voor details →</div>
     <button class="foldout-trigger foldout-trigger--section" data-foldout="toezicht-uitvoering">
       <span class="foldout-icon">i</span>
       <span class="foldout-hint">Toezicht vs. uitvoering</span>
@@ -147,15 +148,15 @@
       <div class="scroll-trigger" data-layer="cultureel" id="trigger-cultureel">
         <div class="trigger-label reveal">
           <span class="layer-tag layer-tag--cult">Culturele diversiteit</span>
+          <button class="foldout-trigger" data-foldout="beheersing-differentiatie" style="margin-top:0.5rem">
+            <span class="foldout-icon">i</span>
+            <span class="foldout-hint">Beheersing &amp; differentiatie</span>
+          </button>
         </div>
       </div>
     </div>
 
     <div class="radial-foldouts">
-      <button class="foldout-trigger" data-foldout="beheersing-differentiatie">
-        <span class="foldout-icon">i</span>
-        <span class="foldout-hint">Beheersing &amp; differentiatie</span>
-      </button>
       <button class="foldout-trigger" data-foldout="vormpatroon-fractaal">
         <span class="foldout-icon">i</span>
         <span class="foldout-hint">Het vormpatroon is fractaal</span>
@@ -225,6 +226,9 @@
         <button class="foldout-trigger" data-foldout="orientatiefase-17jaar">
           <span class="foldout-icon">i</span>
         </button>
+        <button class="foldout-trigger" data-foldout="strategie-nulgroep">
+          <span class="foldout-icon">i</span>
+        </button>
       </div>
       <div class="carousel-card card-dimension" data-dimension="kennis">
         <div class="card-header">Kennis</div>
@@ -278,42 +282,53 @@
     <p>Het pad naar de top: van streefcijfer tot plaatsing.</p>
   </div>
 
-  <div class="pipeline-container">
-    <div class="pipeline-track">
-      <div class="pipeline-stage" data-stage="streefcijfer">
-        <div class="stage-value">48%</div>
-        <div class="stage-label">Streefcijfer</div>
-        <div class="stage-prev">vorig jaar: 51%</div>
-        <div class="stage-arrow">→</div>
-        <button class="foldout-trigger" data-foldout="bureaus-ambitie">
-          <span class="foldout-icon">i</span>
-        </button>
-      </div>
-      <div class="pipeline-stage" data-stage="longlist">
-        <div class="stage-value">43%</div>
-        <div class="stage-label">Longlist</div>
-        <div class="stage-prev">vorig jaar: 47%</div>
-        <div class="stage-arrow">→</div>
-      </div>
-      <div class="pipeline-stage" data-stage="shortlist">
-        <div class="stage-value">41%</div>
-        <div class="stage-label">Shortlist</div>
-        <div class="stage-prev">vorig jaar: 46%</div>
-        <div class="stage-arrow">→</div>
-      </div>
-      <div class="pipeline-stage pipeline-stage--uptick" data-stage="plaatsing">
-        <div class="stage-value">46%</div>
-        <div class="stage-label">Plaatsing</div>
-        <div class="stage-prev">vorig jaar: 46%</div>
-        <button class="foldout-trigger" data-foldout="vrouwen-converteren">
-          <span class="foldout-icon">i</span>
-        </button>
+  <!-- Horizontal scroll-hijack pipeline -->
+  <div class="pipeline-scroll-section" id="pipeline-scroll-section">
+    <div class="pipeline-sticky">
+      <div class="pipeline-viewport">
+        <div class="pipeline-track" id="pipeline-track">
+          <div class="pipeline-stage" data-stage="streefcijfer">
+            <div class="stage-value">48%</div>
+            <div class="stage-label">Streefcijfer</div>
+            <div class="stage-prev">vorig jaar: 51%</div>
+            <button class="foldout-trigger" data-foldout="bureaus-ambitie">
+              <span class="foldout-icon">i</span>
+            </button>
+          </div>
+          <div class="pipeline-connector">
+            <svg viewBox="0 0 60 20" class="connector-arrow"><path d="M0 10 L50 10 M42 4 L50 10 L42 16" fill="none" stroke="#ddd" stroke-width="2"/></svg>
+          </div>
+          <div class="pipeline-stage" data-stage="longlist">
+            <div class="stage-value">43%</div>
+            <div class="stage-label">Longlist</div>
+            <div class="stage-prev">vorig jaar: 47%</div>
+          </div>
+          <div class="pipeline-connector">
+            <svg viewBox="0 0 60 20" class="connector-arrow"><path d="M0 10 L50 10 M42 4 L50 10 L42 16" fill="none" stroke="#ddd" stroke-width="2"/></svg>
+          </div>
+          <div class="pipeline-stage" data-stage="shortlist">
+            <div class="stage-value">41%</div>
+            <div class="stage-label">Shortlist</div>
+            <div class="stage-prev">vorig jaar: 46%</div>
+          </div>
+          <div class="pipeline-connector">
+            <svg viewBox="0 0 60 20" class="connector-arrow"><path d="M0 10 L50 10 M42 4 L50 10 L42 16" fill="none" stroke="#ddd" stroke-width="2"/></svg>
+          </div>
+          <div class="pipeline-stage pipeline-stage--uptick" data-stage="plaatsing">
+            <div class="stage-value">46%</div>
+            <div class="stage-label">Plaatsing</div>
+            <div class="stage-prev">vorig jaar: 46%</div>
+            <button class="foldout-trigger" data-foldout="vrouwen-converteren">
+              <span class="foldout-icon">i</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Position type carousel -->
-  <div class="carousel-container reveal" id="position-carousel">
+  <div class="carousel-container reveal movement-3-carousel" id="position-carousel">
     <div class="carousel-track">
       <div class="carousel-card card-position">
         <div class="card-header">Rvb-plaatsingen</div>
@@ -464,14 +479,15 @@
 <!-- ===== FOLDOUT PANEL ===== -->
 <div class="foldout-overlay" id="foldout-overlay"></div>
 <div class="foldout-panel" id="foldout-panel">
-  <button class="foldout-close" id="foldout-close">×</button>
+  <button class="foldout-close" id="foldout-close">&times;</button>
   <h3 class="foldout-title" id="foldout-title"></h3>
   <div class="foldout-body" id="foldout-body"></div>
 </div>
 
 <!-- ===== DETAIL VIEW ===== -->
 <div class="detail-view" id="detail-view">
-  <button class="detail-back" id="detail-back">← Terug</button>
+  <div class="detail-back-zone" id="detail-back-zone"></div>
+  <button class="detail-back" id="detail-back">&larr; Terug</button>
   <div class="detail-content" id="detail-content"></div>
 </div>
 
