@@ -106,6 +106,23 @@ const FOLDOUTS = {
   }
 };
 
+const DETAIL_DATA = {
+  boardroom: `
+    <h3>De bestuurskamer — volledig overzicht</h3>
+    <table>
+      <thead>
+        <tr><th>Orgaan</th><th>2023</th><th>2024</th><th>Verschil</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Raad van bestuur (rvb)</td><td>36,3%</td><td>33,5%</td><td class="td-negative">&minus;2,8 pp</td></tr>
+        <tr><td>Raad van commissarissen (rvc)</td><td>39,7%</td><td>43,4%</td><td class="td-positive">+3,7 pp</td></tr>
+        <tr><td>Raad van toezicht (rvt)</td><td>45,4%</td><td>48,1%</td><td class="td-positive">+2,7 pp</td></tr>
+      </tbody>
+    </table>
+    <p class="detail-note">Charterorganisaties scoren nog steeds veel hoger dan bedrijven die onder de Wet Ingroeiquotum en streefcijfers vallen. Het percentage vrouwen in de rvb is afgenomen, terwijl rvc en rvt zijn gestegen.</p>
+  `
+};
+
 // ===== SCROLL REVEAL =====
 function initReveal() {
   const observer = new IntersectionObserver((entries) => {
@@ -126,8 +143,7 @@ function initFunnelBars() {
       if (entry.isIntersecting) {
         const bar = entry.target.querySelector('.funnel-bar');
         if (bar) {
-          const width = bar.dataset.width;
-          entry.target.style.setProperty('--bar-w', width);
+          entry.target.style.setProperty('--bar-w', bar.dataset.width);
         }
         entry.target.classList.add('visible');
       }
@@ -143,13 +159,10 @@ function initDualFunnel() {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         entry.target.classList.add('visible');
-        // Set bar widths based on data
         entry.target.querySelectorAll('.dual-bar').forEach(bar => {
           const pct = parseFloat(bar.dataset.width);
           const fill = bar.querySelector('.dual-bar-fill');
-          // Scale: gender bars relative to 50%, cultural relative to 15%
-          const isGender = fill.classList.contains('dual-bar-fill--gender');
-          const scale = isGender ? (pct / 50 * 100) : (pct / 50 * 100);
+          const scale = (pct / 50) * 100;
           fill.style.width = Math.min(scale, 100) + '%';
         });
       }
@@ -159,22 +172,166 @@ function initDualFunnel() {
   document.querySelectorAll('.dual-funnel').forEach(el => observer.observe(el));
 }
 
-// ===== CAROUSELS =====
+// ===== CAROUSELS WITH DEEP SWIPE =====
 function initCarousels() {
   document.querySelectorAll('.carousel-container').forEach(container => {
     const track = container.querySelector('.carousel-track');
     const dots = container.querySelectorAll('.dot');
+    const detailKey = container.dataset.detail;
+    const hint = container.querySelector('.carousel-deep-hint');
     if (!track || !dots.length) return;
 
     const cards = track.querySelectorAll('.carousel-card');
+    let overscrollAccum = 0;
+    let lastScrollLeft = 0;
+    let atEnd = false;
+    let deepSwipeTriggered = false;
 
+    // Dot tracking
     track.addEventListener('scroll', () => {
       const scrollLeft = track.scrollLeft;
-      const cardWidth = cards[0].offsetWidth + 16; // gap
+      const cardWidth = cards[0].offsetWidth + 16;
       const index = Math.round(scrollLeft / cardWidth);
       dots.forEach((d, i) => d.classList.toggle('active', i === index));
+
+      // Deep swipe detection
+      if (detailKey) {
+        const maxScroll = track.scrollWidth - track.clientWidth;
+        const isAtEnd = scrollLeft >= maxScroll - 2;
+
+        if (isAtEnd && !atEnd) {
+          atEnd = true;
+          overscrollAccum = 0;
+        } else if (!isAtEnd) {
+          atEnd = false;
+          overscrollAccum = 0;
+          deepSwipeTriggered = false;
+          if (hint) hint.classList.remove('visible');
+        }
+
+        // Show hint when near end
+        if (scrollLeft >= maxScroll - 50 && !deepSwipeTriggered) {
+          if (hint) hint.classList.add('visible');
+        }
+
+        lastScrollLeft = scrollLeft;
+      }
     }, { passive: true });
+
+    // Deep swipe via touch overscroll detection
+    if (detailKey) {
+      let touchStartX = 0;
+      let touchActive = false;
+
+      track.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchActive = true;
+        deepSwipeTriggered = false;
+      }, { passive: true });
+
+      track.addEventListener('touchmove', (e) => {
+        if (!touchActive || deepSwipeTriggered) return;
+        const maxScroll = track.scrollWidth - track.clientWidth;
+        const isAtEnd = track.scrollLeft >= maxScroll - 2;
+        if (isAtEnd) {
+          const dx = touchStartX - e.touches[0].clientX;
+          if (dx > 60) {
+            deepSwipeTriggered = true;
+            touchActive = false;
+            openDetailView(detailKey);
+          }
+        }
+      }, { passive: true });
+
+      track.addEventListener('touchend', () => {
+        touchActive = false;
+      }, { passive: true });
+
+      // Desktop: detect scroll at end + additional wheel events
+      let wheelAccum = 0;
+      let wheelTimer = null;
+      track.addEventListener('wheel', (e) => {
+        const maxScroll = track.scrollWidth - track.clientWidth;
+        const isAtEnd = track.scrollLeft >= maxScroll - 2;
+        if (isAtEnd && e.deltaX > 0) {
+          wheelAccum += e.deltaX;
+          if (wheelAccum > 120 && !deepSwipeTriggered) {
+            deepSwipeTriggered = true;
+            openDetailView(detailKey);
+          }
+          clearTimeout(wheelTimer);
+          wheelTimer = setTimeout(() => { wheelAccum = 0; }, 300);
+        } else {
+          wheelAccum = 0;
+        }
+      }, { passive: true });
+    }
   });
+}
+
+// ===== DETAIL VIEW =====
+let savedScrollPos = 0;
+
+function openDetailView(key) {
+  const detailView = document.getElementById('detail-view');
+  const detailContent = document.getElementById('detail-content');
+  const html = DETAIL_DATA[key];
+  if (!html) return;
+
+  savedScrollPos = window.scrollY;
+  detailContent.innerHTML = html;
+  detailView.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetailView() {
+  const detailView = document.getElementById('detail-view');
+  detailView.classList.remove('active');
+  document.body.style.overflow = '';
+  requestAnimationFrame(() => {
+    window.scrollTo(0, savedScrollPos);
+  });
+}
+
+function initDetailView() {
+  const detailView = document.getElementById('detail-view');
+  const detailBack = document.getElementById('detail-back');
+  const backZone = document.getElementById('detail-back-zone');
+
+  detailBack.addEventListener('click', closeDetailView);
+
+  // Back gesture: swipe from left edge
+  let backTouchStartX = 0;
+  let backTouchStartY = 0;
+  let backGestureActive = false;
+
+  detailView.addEventListener('touchstart', (e) => {
+    const x = e.touches[0].clientX;
+    if (x < 30) {
+      backTouchStartX = x;
+      backTouchStartY = e.touches[0].clientY;
+      backGestureActive = true;
+    }
+  }, { passive: true });
+
+  detailView.addEventListener('touchmove', (e) => {
+    if (!backGestureActive) return;
+    const dx = e.touches[0].clientX - backTouchStartX;
+    const dy = Math.abs(e.touches[0].clientY - backTouchStartY);
+    if (dx > 80 && dy < 60) {
+      backGestureActive = false;
+      closeDetailView();
+    }
+  }, { passive: true });
+
+  detailView.addEventListener('touchend', () => {
+    backGestureActive = false;
+  }, { passive: true });
+
+  // Back zone click (left edge strip for desktop)
+  if (backZone) {
+    backZone.addEventListener('click', closeDetailView);
+  }
 }
 
 // ===== FOLDOUT PANEL =====
@@ -210,7 +367,6 @@ function initFoldouts() {
 
   closeBtn.addEventListener('click', closeFoldout);
   overlay.addEventListener('click', closeFoldout);
-
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeFoldout();
   });
@@ -229,28 +385,9 @@ function drawRadialChart(svgEl, layers, options = {}) {
   const dims = DATA.dimensions;
   const numDims = dims.length;
   const angleStep = (Math.PI * 2) / numDims;
-  const startAngle = -Math.PI / 2; // start at top
+  const startAngle = -Math.PI / 2;
 
-  // Draw dimension labels
-  dims.forEach((dim, i) => {
-    const angle = startAngle + angleStep * i + angleStep / 2;
-    const labelR = maxR + 20;
-    const x = cx + Math.cos(angle) * labelR;
-    const y = cy + Math.sin(angle) * labelR;
-
-    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    text.setAttribute('x', x);
-    text.setAttribute('y', y);
-    text.setAttribute('text-anchor', 'middle');
-    text.setAttribute('dominant-baseline', 'middle');
-    text.setAttribute('fill', '#999');
-    text.setAttribute('font-size', size > 400 ? '11' : '9');
-    text.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, sans-serif');
-    text.textContent = dim;
-    svgEl.appendChild(text);
-  });
-
-  // Draw reference rings
+  // Reference circles at scale 1,2,3,4
   for (let r = 1; r <= maxRings; r++) {
     const radius = minR + (maxR - minR) * (r / maxRings);
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -263,7 +400,7 @@ function drawRadialChart(svgEl, layers, options = {}) {
     svgEl.appendChild(circle);
   }
 
-  // Draw dimension separator lines
+  // Dimension separator lines
   dims.forEach((_, i) => {
     const angle = startAngle + angleStep * i;
     const x1 = cx + Math.cos(angle) * minR;
@@ -281,7 +418,7 @@ function drawRadialChart(svgEl, layers, options = {}) {
     svgEl.appendChild(line);
   });
 
-  // Draw arcs for each layer
+  // Arcs for each layer
   layers.forEach((layer, layerIdx) => {
     const values = DATA[layer.key];
     const color = DATA.colors[layer.key];
@@ -331,13 +468,32 @@ function drawRadialChart(svgEl, layers, options = {}) {
       svgEl.appendChild(path);
     });
   });
+
+  // Dimension labels on top
+  dims.forEach((dim, i) => {
+    const angle = startAngle + angleStep * i + angleStep / 2;
+    const labelR = maxR + (size > 400 ? 24 : 18);
+    const x = cx + Math.cos(angle) * labelR;
+    const y = cy + Math.sin(angle) * labelR;
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', x);
+    text.setAttribute('y', y);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dominant-baseline', 'middle');
+    text.setAttribute('fill', '#999');
+    text.setAttribute('font-size', size > 400 ? '11' : '9');
+    text.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, sans-serif');
+    text.textContent = dim;
+    svgEl.appendChild(text);
+  });
 }
 
-// ===== RADIAL CHART SCROLL BUILD =====
+// ===== RADIAL CHART SCROLL BUILD (with reverse) =====
 function initRadialScrollBuild() {
   const svg = document.getElementById('radial-chart');
   const legend = document.getElementById('radial-legend');
-  let currentLayers = [];
+  let currentLayerCount = -1;
 
   const layerDefs = [
     { key: 'mv', opacity: 0.6, label: 'M/V-diversiteit', color: DATA.colors.mv },
@@ -351,10 +507,8 @@ function initRadialScrollBuild() {
     ).join('');
   }
 
-  const triggers = document.querySelectorAll('.scroll-trigger');
-
-  const observer = new IntersectionObserver((entries) => {
-    // Determine which layers should be visible
+  function updateChart() {
+    const triggers = document.querySelectorAll('.scroll-trigger');
     let maxVisibleIndex = -1;
     triggers.forEach((t, i) => {
       const rect = t.getBoundingClientRect();
@@ -363,40 +517,30 @@ function initRadialScrollBuild() {
       }
     });
 
-    const newLayers = layerDefs.slice(0, maxVisibleIndex + 1);
-    if (newLayers.length !== currentLayers.length) {
-      currentLayers = newLayers;
-      drawRadialChart(svg, currentLayers, { animate: true });
-      updateLegend(currentLayers);
+    if (maxVisibleIndex !== currentLayerCount) {
+      currentLayerCount = maxVisibleIndex;
+      const newLayers = layerDefs.slice(0, maxVisibleIndex + 1);
+      drawRadialChart(svg, newLayers, { animate: true });
+      updateLegend(newLayers);
     }
-  }, { threshold: [0, 0.25, 0.5, 0.75, 1] });
+  }
 
-  triggers.forEach(t => observer.observe(t));
+  // Initial draw of empty chart (reference rings only)
+  drawRadialChart(svg, [], { animate: false });
 
-  // Also use scroll event for more responsive updates
   let ticking = false;
   window.addEventListener('scroll', () => {
     if (!ticking) {
       requestAnimationFrame(() => {
-        let maxVisibleIndex = -1;
-        triggers.forEach((t, i) => {
-          const rect = t.getBoundingClientRect();
-          if (rect.top < window.innerHeight * 0.6) {
-            maxVisibleIndex = i;
-          }
-        });
-
-        const newLayers = layerDefs.slice(0, maxVisibleIndex + 1);
-        if (newLayers.length !== currentLayers.length) {
-          currentLayers = newLayers;
-          drawRadialChart(svg, currentLayers, { animate: true });
-          updateLegend(currentLayers);
-        }
+        updateChart();
         ticking = false;
       });
       ticking = true;
     }
   }, { passive: true });
+
+  // Initial check
+  updateChart();
 }
 
 // ===== ECHO RADIAL CHART =====
@@ -412,7 +556,6 @@ function initEchoRadial() {
       }
     });
   }, { threshold: 0.3 });
-
   observer.observe(svg);
 }
 
@@ -440,49 +583,58 @@ function initCoda() {
   observer.observe(document.getElementById('coda'));
 }
 
-// ===== DETAIL VIEW =====
-function initDetailView() {
-  const detailView = document.getElementById('detail-view');
-  const detailContent = document.getElementById('detail-content');
-  const detailBack = document.getElementById('detail-back');
-  let savedScrollPos = 0;
+// ===== HORIZONTAL SCROLL PIPELINE (Movement 3) =====
+function initPipeline() {
+  const section = document.getElementById('pipeline-scroll-section');
+  const track = document.getElementById('pipeline-track');
+  if (!section || !track) return;
 
-  const detailData = {
-    boardroom: `
-      <h3>De bestuurskamer — volledig overzicht</h3>
-      <table>
-        <thead>
-          <tr><th>Orgaan</th><th>2023</th><th>2024</th><th>Verschil</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>Raad van bestuur (rvb)</td><td>36,3%</td><td>33,5%</td><td style="color:#c0392b">−2,8 pp</td></tr>
-          <tr><td>Raad van commissarissen (rvc)</td><td>39,7%</td><td>43,4%</td><td style="color:#27ae60">+3,7 pp</td></tr>
-          <tr><td>Raad van toezicht (rvt)</td><td>45,4%</td><td>48,1%</td><td style="color:#27ae60">+2,7 pp</td></tr>
-        </tbody>
-      </table>
-      <p style="margin-top:1rem;color:#6b6b6b;font-size:0.9rem;">Charterorganisaties scoren nog steeds veel hoger dan bedrijven die onder de Wet Ingroeiquotum en streefcijfers vallen. Het percentage vrouwen in de rvb is afgenomen, terwijl rvc en rvt zijn gestegen.</p>
-    `
-  };
+  function updatePipeline() {
+    const rect = section.getBoundingClientRect();
+    const sectionHeight = section.offsetHeight;
+    const viewH = window.innerHeight;
 
-  // Deep swipe detection on carousels
-  document.querySelectorAll('.carousel-track').forEach(track => {
-    track.addEventListener('scroll', () => {
-      const maxScroll = track.scrollWidth - track.clientWidth;
-      if (track.scrollLeft >= maxScroll - 5) {
-        // At the end — could trigger detail view
-        // For now, add a visual hint
-        track.classList.add('at-end');
+    // Section scroll progress: 0 at start, 1 at end
+    // The section is taller than the viewport to create scroll room
+    const scrollRange = sectionHeight - viewH;
+    if (scrollRange <= 0) return;
+
+    const progress = Math.max(0, Math.min(1, -rect.top / scrollRange));
+
+    // Calculate how far to translate the track
+    const trackWidth = track.scrollWidth;
+    const viewportWidth = section.querySelector('.pipeline-viewport').offsetWidth;
+    const maxTranslate = trackWidth - viewportWidth;
+
+    if (maxTranslate > 0) {
+      const tx = progress * maxTranslate;
+      track.style.transform = `translateX(${-tx}px)`;
+    }
+
+    // Reveal stages as they come into "view"
+    const stages = track.querySelectorAll('.pipeline-stage');
+    stages.forEach((stage, i) => {
+      const stageProgress = progress * stages.length;
+      if (stageProgress >= i) {
+        stage.classList.add('visible');
       } else {
-        track.classList.remove('at-end');
+        stage.classList.remove('visible');
       }
-    }, { passive: true });
-  });
+    });
+  }
 
-  detailBack.addEventListener('click', () => {
-    detailView.classList.remove('active');
-    document.body.style.overflow = '';
-    window.scrollTo(0, savedScrollPos);
-  });
+  let ticking = false;
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      requestAnimationFrame(() => {
+        updatePipeline();
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }, { passive: true });
+
+  updatePipeline();
 }
 
 // ===== INIT =====
@@ -496,4 +648,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initEchoRadial();
   initCoda();
   initDetailView();
+  initPipeline();
 });
